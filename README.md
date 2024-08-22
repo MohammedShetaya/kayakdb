@@ -1,2 +1,2 @@
 # kayakDB
-Light weight key-value database that just works
+Light weight key-value database based on Raft that just works
