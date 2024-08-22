@@ -1,4 +1,4 @@
-module kayakdb
+module github.com/MohammedShetaya/kayakdb
 
 go 1.22.3
 

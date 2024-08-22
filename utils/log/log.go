@@ -1,4 +1,4 @@
-package utils
+package log
 
 import (
 	"go.uber.org/zap"
@@ -9,12 +9,13 @@ var (
 	Log *zap.Logger
 )
 
-func InitLogger() {
+func InitLogger() *zap.Logger {
 	var err error
 	Log, err = zap.NewProduction()
 	if err != nil {
 		log.Fatalf("cannot initialize logger: %v", err)
 	}
+	return Log
 }
 
 func Sync() {
