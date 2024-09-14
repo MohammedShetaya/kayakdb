@@ -11,13 +11,18 @@ type Server struct {
 	logger   *zap.Logger
 }
 
-func (s *Server) Start(host string, port string, ctx context.Context, cancel context.CancelFunc, logger *zap.Logger) {
-	// if this function fails then close the whole context
-	defer cancel()
+func (s *Server) Start(host string, port string, logger *zap.Logger) {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		logger.Error("Server is Down")
+		// if this function fails then close the whole context
+		cancel()
+	}()
+
 	logger.Info("Server is starting")
 	Listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
-		defer cancel()
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}
 	defer func() {
@@ -25,23 +30,33 @@ func (s *Server) Start(host string, port string, ctx context.Context, cancel con
 	}()
 
 	logger.Info("Server is Listening on",
-		zap.String(host, host),
-		zap.String(port, port),
+		zap.String("host", host),
+		zap.String("port", port),
 	)
 	// TODO: implement workers pool
-	// TODO: connection heartbeats and timeout
 	for {
+
 		conn, err := Listener.Accept()
 		if err != nil {
 			logger.Fatal("Unable to accept connection", zap.Error(err))
 		}
 
 		// handle connection
-		go func(c net.Conn) {
-			defer func() {
-				_ = c.Close()
-			}()
-
-		}(conn)
+		go handleConnection(ctx, logger, conn)
 	}
+}
+
+func handleConnection(ctx context.Context, logger *zap.Logger, conn net.Conn) {
+	// TODO: connection heartbeats and timeout
+	defer func() {
+		_ = conn.Close()
+	}()
+	// if the server context is canceled then exit
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+
+	logger.Info("Handling request")
 }
