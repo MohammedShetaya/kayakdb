@@ -57,6 +57,11 @@ func handleConnection(ctx context.Context, logger *zap.Logger, conn net.Conn) {
 		return
 	default:
 	}
+	logger.Info("Received request", zap.String("from", conn.RemoteAddr().String()))
+	payload, err := decode(logger, conn)
+	if err != nil {
+		logger.Fatal("Unable to decode the request payload", zap.Error(err))
+	}
 
-	logger.Info("Handling request")
+	logger.Info(payload.String())
 }
