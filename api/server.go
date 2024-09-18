@@ -64,4 +64,5 @@ func handleConnection(ctx context.Context, logger *zap.Logger, conn net.Conn) {
 	}
 
 	logger.Info(payload.String())
+	// TODO: handle request based on header path.
 }

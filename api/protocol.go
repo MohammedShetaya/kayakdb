@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"io"
+	"strings"
 )
 
 /*
@@ -57,14 +58,17 @@ func (b *Binary) ReadFrom(r io.Reader) (int64, error) {
 	return 1, nil
 }
 
+// Number TODO: support larger numbers and floating point
 // Number Implementation of the Number data type
 type Number []byte
 
 func (n Number) String() string {
-	return string(n)
+	// Convert the 4 bytes to uint32
+	num := int32(binary.BigEndian.Uint32(n))
+	return fmt.Sprintf("%d", num)
 }
 
-func (n Number) Byte() []byte {
+func (n Number) Bytes() []byte {
 	return n
 }
 
@@ -76,13 +80,6 @@ func (n *Number) ReadFrom(r io.Reader) (int64, error) {
 		return 0, err
 	}
 	return 4, nil
-}
-
-type Headers struct {
-	// number of bytes for the path
-	PathLength uint32
-	// the actual path
-	Path string
 }
 
 // String Implementation of the String data type
@@ -120,27 +117,41 @@ func (s *String) ReadFrom(r io.Reader) (int64, error) {
 	return int64(n + 4), nil
 }
 
+type Headers struct {
+	// number of bytes for the path
+	PathLength uint32
+	// the actual path
+	Path string
+}
+
+func (h Headers) String() string {
+	return fmt.Sprintf("Path: %s (Length: %d)", h.Path, h.PathLength)
+}
+
 type Payload struct {
 	Headers Headers
 	Data    map[Type]Type
 }
 
 func (p Payload) String() string {
-	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("Headers:\n  PathLength: %d\n  Path: %s\n", p.Headers.PathLength, p.Headers.Path))
-	buf.WriteString("Data:\n")
+	var sb strings.Builder
 
+	// Write headers to the string
+	sb.WriteString(fmt.Sprintf("Headers: %s\n", p.Headers.String()))
+
+	// Iterate over Data and write each key-value pair
+	sb.WriteString("Data:\n")
 	for key, value := range p.Data {
-		buf.WriteString(fmt.Sprintf("  Key: %s, Value: %s\n", key.String(), value.String()))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", key.String(), value.String()))
 	}
 
-	return buf.String()
+	return sb.String()
 }
 
 // decodes and returns Payload from an io.Reader
 func decode(logger *zap.Logger, r io.Reader) (*Payload, error) {
 	headers := Headers{}
-	// read the path chunk]
+	// read the path chunk
 	pathLength := make([]byte, 4)
 	n, err := r.Read(pathLength)
 	if err != nil {
@@ -157,6 +168,8 @@ func decode(logger *zap.Logger, r io.Reader) (*Payload, error) {
 		return nil, err
 	}
 
+	logger.Info("Path Length", zap.Int("Path Length is", int(headers.PathLength)))
+
 	// read the path
 	path := make([]byte, headers.PathLength)
 	n, err = r.Read(path)
@@ -168,12 +181,9 @@ func decode(logger *zap.Logger, r io.Reader) (*Payload, error) {
 		logger.Error("Path length is less than or equal 0")
 		return nil, io.ErrUnexpectedEOF
 	}
-	err = binary.Read(bytes.NewReader(path), binary.BigEndian, &headers.Path)
-	if err != nil {
-		logger.Error("Unable to convert path len byte array to int")
-		return nil, err
-	}
-
+	headers.Path = string(path)
+	// TODO: implement different handlers based on the bath
+	logger.Info("Path is:", zap.String("Path", headers.Path))
 	// Initialize the Payload
 	payload := &Payload{
 		Headers: headers,
@@ -192,6 +202,7 @@ func decode(logger *zap.Logger, r io.Reader) (*Payload, error) {
 			logger.Error("Failed to read key type", zap.Error(err))
 			return nil, err
 		}
+		logger.Debug("", zap.Int("key type", int(keyType)))
 
 		// Read value type (1 byte)
 		var valueType uint8
@@ -200,6 +211,7 @@ func decode(logger *zap.Logger, r io.Reader) (*Payload, error) {
 			return nil, err
 		}
 
+		logger.Info("value type", zap.Int("value type", int(valueType)))
 		// Track total data size
 		totalDataSize += 2 // 1 for keyType, 1 for valueType
 
@@ -232,16 +244,19 @@ func readType(logger *zap.Logger, reader io.Reader, dataType uint8) (Type, error
 
 	switch dataType {
 	case BinaryType:
+		data = &Binary{}
 		if _, err := data.ReadFrom(reader); err != nil {
 			logger.Error("Failed to read key as Binary", zap.Error(err))
 			return nil, err
 		}
 	case StringType:
+		data = &String{}
 		if _, err := data.ReadFrom(reader); err != nil {
 			logger.Error("Failed to read key as String", zap.Error(err))
 			return nil, err
 		}
 	case NumberType:
+		data = &Number{}
 		if _, err := data.ReadFrom(reader); err != nil {
 			logger.Error("Failed to read key as Number", zap.Error(err))
 			return nil, err
