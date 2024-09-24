@@ -16,7 +16,7 @@ func main() {
 	hostname := os.Getenv("KAYAK_HOSTNAME")
 	port := os.Getenv("KAYAK_PORT")
 
-	server := api.Server{}
-	server.Start(hostname, port, logger)
+	server := api.NewServer(logger)
+	server.Start(hostname, port)
 
 }

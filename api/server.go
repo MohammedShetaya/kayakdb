@@ -7,42 +7,49 @@ import (
 )
 
 type Server struct {
-	Listener net.Listener
+	listener *net.Listener
 	logger   *zap.Logger
 }
 
-func (s *Server) Start(host string, port string, logger *zap.Logger) {
+func NewServer(logger *zap.Logger) Server {
+	var s Server = Server{}
+	s.logger = logger
+	return s
+}
+
+func (s *Server) Start(host string, port string) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		logger.Error("Server is Down")
+		s.logger.Error("Server is Down")
 		// if this function fails then close the whole context
 		cancel()
 	}()
 
-	logger.Info("Server is starting")
-	Listener, err := net.Listen("tcp", host+":"+port)
+	s.logger.Info("Server is starting")
+	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
-		logger.Fatal("Failed to start server", zap.Error(err))
+		s.logger.Fatal("Failed to start server", zap.Error(err))
 	}
 	defer func() {
-		_ = Listener.Close()
+		_ = listener.Close()
 	}()
+	s.listener = &listener
 
-	logger.Info("Server is Listening on",
+	s.logger.Info("Server is Listening on",
 		zap.String("host", host),
 		zap.String("port", port),
 	)
 	// TODO: implement workers pool
 	for {
 
-		conn, err := Listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
-			logger.Fatal("Unable to accept connection", zap.Error(err))
+			s.logger.Fatal("Unable to accept connection", zap.Error(err))
 		}
 
 		// handle connection
-		go handleConnection(ctx, logger, conn)
+		go handleConnection(ctx, s.logger, conn)
 	}
 }
 

@@ -24,8 +24,8 @@ func startTestServer(t *testing.T) {
 
 	// Start the server in a separate goroutine
 	go func() {
-		server := api.Server{}
-		server.Start("localhost", "8080", logger)
+		server := api.NewServer(logger)
+		server.Start("localhost", "8080")
 	}()
 
 	// Give the server some time to start
