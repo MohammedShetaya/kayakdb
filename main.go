@@ -18,5 +18,4 @@ func main() {
 
 	server := api.NewServer(logger)
 	server.Start(hostname, port)
-
 }
