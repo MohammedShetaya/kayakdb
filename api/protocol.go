@@ -1,5 +1,9 @@
 package api
 
+/*
+This module represents the TCP protocol specification that is used in the api endpoints
+*/
+
 import (
 	"bytes"
 	"encoding/binary"
@@ -9,9 +13,6 @@ import (
 	"strings"
 )
 
-/*
-This represents the TCP protocol specification that is used in the api endpoints
-*/
 const (
 	MaxPayloadSize uint32 = 1 << 24 // 16MB //todo: make this configurable
 )
@@ -68,14 +69,11 @@ func (s String) Bytes() []byte {
 }
 
 type Headers struct {
-	// number of bytes for the path
-	PathLength uint32
-	// the actual path
 	Path string
 }
 
 func (h Headers) String() string {
-	return fmt.Sprintf("Path: %s (Length: %d)", h.Path, h.PathLength)
+	return fmt.Sprintf("Path: %s (Length: %d)", h.Path, len(h.Path))
 }
 
 type KeyValue struct {
@@ -101,6 +99,10 @@ func (p Payload) String() string {
 	// Iterate over Data and write each key-value pair
 	sb.WriteString("Data:\n")
 	for _, entry := range p.Data {
+		if entry.Value == nil {
+			sb.WriteString(fmt.Sprintf("%s: nil\n", entry.Key.String()))
+			continue
+		}
 		sb.WriteString(fmt.Sprintf("%s: %s\n", entry.Key.String(), entry.Value.String()))
 	}
 

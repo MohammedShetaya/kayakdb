@@ -35,9 +35,6 @@ vendor/
 build/
 dist/
 
-# Go modules
-go.sum
-
 # Package archives
 *.tar.gz
 *.zip
