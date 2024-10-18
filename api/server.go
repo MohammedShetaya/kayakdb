@@ -95,8 +95,6 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 		}
 	}
 
-	logger.Info("data received", zap.String("data", string(data)))
-
 	var payload Payload
 	err := payload.Deserialize(data)
 
