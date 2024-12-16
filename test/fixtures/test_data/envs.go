@@ -1,6 +1,6 @@
 package test_data
 
 const (
-	KayakdbPort = "8080"
+	KayakdbPort = "6323"
 	KayakdbHost = "localhost"
 )

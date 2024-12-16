@@ -32,14 +32,17 @@ func (s *Server) Start(host string, port string) {
 	}()
 	// initialize the protocol types
 	InitProtocol()
+
 	s.logger.Info("Server is starting")
 	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
 		s.logger.Fatal("Failed to start server", zap.Error(err))
 	}
+
 	defer func() {
 		_ = listener.Close()
 	}()
+
 	s.listener = &listener
 	s.Host = host
 	s.Port = port
@@ -67,8 +70,6 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 	defer func() {
 		_ = conn.Close()
 	}()
-
-	logger.Info("Received request", zap.String("from", conn.RemoteAddr().String()))
 
 	var data []byte
 	buffer := make([]byte, 1024)
@@ -102,7 +103,7 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 		logger.Fatal("Failed to deserialize payload", zap.Error(err))
 	}
 
-	logger.Info("Payload Successfully Deserialized", zap.String("payload", payload.String()))
+	logger.Info("Received Request", zap.String("from", conn.RemoteAddr().String()), zap.String("payload", payload.String()))
 
 	// TODO: handle request based on header path.
 	s.handlersController.HandleRequest(&payload)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MohammedShetaya/kayakdb/api"
 	"net"
+	"time"
 )
 
 // Then takes any action in for the test to be completed
@@ -19,9 +20,6 @@ func (t *Then) When() *When {
 // Expected options: ["payload"]
 func (t *Then) SendRequest() {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", t.server.Host, t.server.Port))
-	defer func() {
-		_ = conn.Close()
-	}()
 	if err != nil {
 		t.Error("Failed to connect to server", err)
 	}
@@ -32,4 +30,7 @@ func (t *Then) SendRequest() {
 	}
 	data, err := payload.Serialize()
 	_, err = conn.Write(data)
+	conn.Close()
+	// TODO: remove this sleep after implementing responses from the server
+	time.Sleep(time.Second)
 }

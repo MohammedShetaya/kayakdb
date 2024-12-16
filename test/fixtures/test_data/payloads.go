@@ -7,7 +7,7 @@ var GetPayload api.Payload = api.Payload{
 		Path: "/get",
 	},
 	Data: []api.KeyValue{
-		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x0F})},
+		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F})},
 	},
 }
 
@@ -16,6 +16,6 @@ var PutPayload api.Payload = api.Payload{
 		Path: "/put",
 	},
 	Data: []api.KeyValue{
-		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x0F}), Value: api.String("hello")},
+		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}), Value: api.String("hello")},
 	},
 }

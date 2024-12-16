@@ -10,6 +10,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -49,7 +50,7 @@ type Number []byte
 
 func (n Number) String() string {
 	// Convert the 4 bytes to uint32
-	num := int32(binary.BigEndian.Uint32(n))
+	num := int64(binary.BigEndian.Uint64(n))
 	return fmt.Sprintf("%d", num)
 }
 
@@ -94,13 +95,13 @@ func NewPayload() *Payload {
 func (p Payload) String() string {
 	var sb strings.Builder
 	// Write headers to the string
-	sb.WriteString(fmt.Sprintf("Headers: %s\n", p.Headers.String()))
+	sb.WriteString(fmt.Sprintf("Headers:\n  %s\n", p.Headers.String()))
 
 	// Iterate over Data and write each key-value pair
 	sb.WriteString("Data:\n")
 	for _, entry := range p.Data {
 		if entry.Value == nil {
-			sb.WriteString(fmt.Sprintf("%s: nil\n", entry.Key.String()))
+			sb.WriteString(fmt.Sprintf("  %s: nil\n", entry.Key.String()))
 			continue
 		}
 		sb.WriteString(fmt.Sprintf("%s: %s\n", entry.Key.String(), entry.Value.String()))
@@ -113,7 +114,6 @@ func (p *Payload) Serialize() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 
-	// Encode the headers
 	if err := encoder.Encode(p); err != nil {
 		return nil, err
 	}
@@ -137,4 +137,15 @@ func InitProtocol() {
 	gob.Register(Binary{})
 	gob.Register(Number{})
 	gob.Register(String{})
+}
+
+func ConvertStringKeyToDataType(data string) (Type, error) {
+	// convert the string to number
+	if num, err := strconv.Atoi(data); err == nil {
+		byteArray := make([]byte, 8)
+		binary.BigEndian.PutUint64(byteArray, uint64(num))
+		return Number(byteArray), nil
+	} else { // if not a number then convert to a string data-type
+		return String(data), nil
+	}
 }
