@@ -10,6 +10,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -113,7 +114,6 @@ func (p *Payload) Serialize() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 
-	// Encode the headers
 	if err := encoder.Encode(p); err != nil {
 		return nil, err
 	}
@@ -137,4 +137,15 @@ func InitProtocol() {
 	gob.Register(Binary{})
 	gob.Register(Number{})
 	gob.Register(String{})
+}
+
+func ConvertStringKeyToDataType(data string) (Type, error) {
+	// convert the string to number
+	if num, err := strconv.Atoi(data); err == nil {
+		byteArray := make([]byte, 8)
+		binary.BigEndian.PutUint64(byteArray, uint64(num))
+		return Number(byteArray), nil
+	} else { // if not a number then convert to a string data-type
+		return String(data), nil
+	}
 }
