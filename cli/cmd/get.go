@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/MohammedShetaya/kayakdb/api"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"github.com/spf13/cobra"
 )
 
@@ -29,12 +29,12 @@ func init() {
 }
 
 func commandHandler(_ *cobra.Command, args []string) {
-	key, _ := api.ConvertStringKeyToDataType(args[0])
-	payload := api.Payload{
-		Headers: api.Headers{
+	key, _ := types.ConvertStringKeyToDataType(args[0])
+	payload := types.Payload{
+		Headers: types.Headers{
 			Path: "/get",
 		},
-		Data: []api.KeyValue{
+		Data: []types.KeyValue{
 			{Key: key},
 		},
 	}

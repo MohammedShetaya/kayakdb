@@ -1,21 +1,23 @@
 package test_data
 
-import "github.com/MohammedShetaya/kayakdb/api"
+import (
+	"github.com/MohammedShetaya/kayakdb/types"
+)
 
-var GetPayload api.Payload = api.Payload{
-	Headers: api.Headers{
+var GetPayload types.Payload = types.Payload{
+	Headers: types.Headers{
 		Path: "/get",
 	},
-	Data: []api.KeyValue{
-		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F})},
+	Data: []types.KeyValue{
+		{Key: types.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F})},
 	},
 }
 
-var PutPayload api.Payload = api.Payload{
-	Headers: api.Headers{
+var PutPayload types.Payload = types.Payload{
+	Headers: types.Headers{
 		Path: "/put",
 	},
-	Data: []api.KeyValue{
-		{Key: api.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}), Value: api.String("hello")},
+	Data: []types.KeyValue{
+		{Key: types.Number([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}), Value: types.String("hello")},
 	},
 }

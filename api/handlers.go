@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 )
 
@@ -12,7 +13,7 @@ type HandlersController struct {
 }
 
 // TODO: change the return type to be of type response
-type RequestHandler func(ctx *context.Context, logger *zap.Logger, payload *Payload) error
+type RequestHandler func(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error
 
 func NewHandlerController(ctx *context.Context, logger *zap.Logger) *HandlersController {
 	controller := &HandlersController{
@@ -32,7 +33,7 @@ func (c *HandlersController) RegisterHandler(path string, handler RequestHandler
 	c.handlers[path] = handler
 }
 
-func (c *HandlersController) HandleRequest(payload *Payload) {
+func (c *HandlersController) HandleRequest(payload *types.Payload) {
 	handler, exist := c.handlers[payload.Headers.Path]
 	if !exist {
 		c.logger.Fatal("No Handler for the request path", zap.String("path", payload.Headers.Path))
@@ -50,13 +51,13 @@ func (c *HandlersController) InitHandlers() error {
 	return nil
 }
 
-func GetHandler(ctx *context.Context, logger *zap.Logger, payload *Payload) error {
+func GetHandler(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error {
 	// TODO: implement the get logic
 	logger.Info("Handling request", zap.String("path", payload.Headers.Path))
 	return nil
 }
 
-func PutHandler(ctx *context.Context, logger *zap.Logger, payload *Payload) error {
+func PutHandler(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error {
 	// TODO: implement the put logic
 	logger.Info("Handling request", zap.String("path", payload.Headers.Path))
 	return nil

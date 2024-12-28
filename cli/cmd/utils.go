@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/MohammedShetaya/kayakdb/api"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 	"net"
 )
 
-func SendRequest(hostname string, port string, payload api.Payload, logger *zap.Logger) {
+func SendRequest(hostname string, port string, payload types.Payload, logger *zap.Logger) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", hostname, port))
 	if err != nil {
 		logger.Fatal("Failed to connect to server", zap.Error(err))

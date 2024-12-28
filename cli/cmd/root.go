@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/MohammedShetaya/kayakdb/api"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"github.com/MohammedShetaya/kayakdb/utils/log"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -44,5 +44,5 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&hostname, "hostname", "d", "localhost", "Hostname of the server")
 	rootCmd.PersistentFlags().StringVarP(&port, "port", "p", "8080", "Port of the server")
-	api.InitProtocol()
+	types.RegisterDataTypes()
 }

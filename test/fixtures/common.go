@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Common holds common logic and data of tests
+// Common holds common logic and types of tests
 type Common struct {
 	server  *api.Server
 	options map[string]interface{}

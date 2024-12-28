@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -31,7 +32,7 @@ func (s *Server) Start(host string, port string) {
 		cancel()
 	}()
 	// initialize the protocol types
-	InitProtocol()
+	types.RegisterDataTypes()
 
 	s.logger.Info("Server is starting")
 	listener, err := net.Listen("tcp", host+":"+port)
@@ -85,18 +86,18 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
-				logger.Fatal("Error occurred while reading payload data", zap.Error(err))
+				logger.Fatal("Error occurred while reading payload types", zap.Error(err))
 			}
 			break
 		}
 		data = append(data, buffer[:n]...)
 
-		if uint32(len(data)*8) > MaxPayloadSize {
-			logger.Fatal(fmt.Sprintf("Exceeded maximum payload size of %v", MaxPayloadSize))
+		if uint32(len(data)*8) > types.MaxPayloadSize {
+			logger.Fatal(fmt.Sprintf("Exceeded maximum payload size of %v", types.MaxPayloadSize))
 		}
 	}
 
-	var payload Payload
+	var payload types.Payload
 	err := payload.Deserialize(data)
 
 	if err != nil {

@@ -1,7 +1,7 @@
-package api
+package types
 
 /*
-This module represents the TCP protocol specification that is used in the api endpoints
+ This module represents the types types used in the api and storage backend
 */
 
 import (
@@ -30,7 +30,7 @@ type Type interface {
 	//io.ReaderFrom
 }
 
-// Binary Implementation the Binary data type
+// Binary Implementation the Binary types type
 type Binary []byte
 
 func (b Binary) String() string {
@@ -45,7 +45,7 @@ func (b Binary) Bytes() []byte {
 }
 
 // Number TODO: support larger numbers and floating point
-// Number Implementation of the Number data type
+// Number Implementation of the Number types type
 type Number []byte
 
 func (n Number) String() string {
@@ -58,7 +58,7 @@ func (n Number) Bytes() []byte {
 	return n
 }
 
-// String Implementation of the String data type
+// String Implementation of the String types type
 type String []byte
 
 func (s String) String() string {
@@ -132,7 +132,7 @@ func (p *Payload) Deserialize(data []byte) error {
 	return nil
 }
 
-func InitProtocol() {
+func RegisterDataTypes() {
 	// register the types to be serialized
 	gob.Register(Binary{})
 	gob.Register(Number{})
@@ -145,7 +145,7 @@ func ConvertStringKeyToDataType(data string) (Type, error) {
 		byteArray := make([]byte, 8)
 		binary.BigEndian.PutUint64(byteArray, uint64(num))
 		return Number(byteArray), nil
-	} else { // if not a number then convert to a string data-type
+	} else { // if not a number then convert to a string types-type
 		return String(data), nil
 	}
 }
