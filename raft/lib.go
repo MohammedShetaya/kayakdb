@@ -133,7 +133,7 @@ func (r *Raft) registerNode() {
 								peer uint,
 								raft *Raft,
 								response *AppendResponse,
-							// the return values of the main job that will be appended upon job execution
+								// the return values of the main job that will be appended upon job execution
 								jobReturns ...any,
 							) {
 								// update the matchIndex of that peer after a successful replication.

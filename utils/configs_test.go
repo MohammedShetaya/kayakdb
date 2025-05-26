@@ -141,4 +141,4 @@ func TestLoadConfigurations(t *testing.T) {
 			t.Error("Expected error for non-pointer config object, got nil")
 		}
 	})
-} 
+}
