@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/MohammedShetaya/kayakdb/types"
+	_ "github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 	"net"
 )

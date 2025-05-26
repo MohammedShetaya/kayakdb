@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"github.com/MohammedShetaya/kayakdb/raft"
 	"github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 )
 
 type HandlersController struct {
 	handlers map[string]RequestHandler
+	raft     *raft.Raft
 	ctx      *context.Context
 	logger   *zap.Logger
 }
@@ -15,14 +17,15 @@ type HandlersController struct {
 // TODO: change the return type to be of type response
 type RequestHandler func(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error
 
-func NewHandlerController(ctx *context.Context, logger *zap.Logger) *HandlersController {
+func NewHandlerController(ctx *context.Context, raft *raft.Raft, logger *zap.Logger) *HandlersController {
 	controller := &HandlersController{
 		handlers: make(map[string]RequestHandler),
+		raft:     raft,
 		ctx:      ctx,
 		logger:   logger,
 	}
 
-	err := controller.InitHandlers()
+	err := controller.RegisterHandlers()
 	if err != nil {
 		logger.Fatal("Error initializing handlers", zap.Error(err))
 	}
@@ -45,7 +48,7 @@ func (c *HandlersController) HandleRequest(payload *types.Payload) {
 	}
 }
 
-func (c *HandlersController) InitHandlers() error {
+func (c *HandlersController) RegisterHandlers() error {
 	c.RegisterHandler("/get", GetHandler)
 	c.RegisterHandler("/put", PutHandler)
 	return nil
@@ -59,6 +62,11 @@ func GetHandler(ctx *context.Context, logger *zap.Logger, payload *types.Payload
 
 func PutHandler(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error {
 	// TODO: implement the put logic
+	logger.Info("Handling request", zap.String("path", payload.Headers.Path))
+	return nil
+}
+
+func (c *HandlersController) PutRPC(ctx *context.Context, logger *zap.Logger, payload *types.Payload) error {
 	logger.Info("Handling request", zap.String("path", payload.Headers.Path))
 	return nil
 }

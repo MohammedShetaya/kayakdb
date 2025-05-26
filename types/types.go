@@ -20,14 +20,12 @@ const (
 
 var ErrMaxPayloadSize = errors.New("maximum payload size exceeded")
 
-// Type This interface represents the payload to be sent to any endpoint
+// Type This interface represents any data type
 type Type interface {
 	// Stringer returns the type as a string
 	fmt.Stringer
 	// Bytes returns the type as bytes
 	Bytes() []byte
-	// ReaderFrom reads from an io.Reader
-	//io.ReaderFrom
 }
 
 // Binary Implementation the Binary types type
@@ -58,7 +56,7 @@ func (n Number) Bytes() []byte {
 	return n
 }
 
-// String Implementation of the String types type
+// String Implementation of the String type
 type String []byte
 
 func (s String) String() string {
@@ -87,11 +85,6 @@ type Payload struct {
 	Data    []KeyValue
 }
 
-func NewPayload() *Payload {
-	payload := new(Payload)
-	return payload
-}
-
 func (p Payload) String() string {
 	var sb strings.Builder
 	// Write headers to the string
@@ -110,6 +103,27 @@ func (p Payload) String() string {
 	return sb.String()
 }
 
+type LogEntry struct {
+	Term uint
+	Pair KeyValue
+}
+
+func (l *LogEntry) String() string {
+	return fmt.Sprintf("Term: %d, Key: %s, Value: %s", l.Term, l.Pair.Key, l.Pair.Value)
+}
+
+func (l *LogEntry) Bytes() []byte {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+
+	if err := encoder.Encode(l); err != nil {
+		return nil
+	}
+
+	return buffer.Bytes()
+}
+
+// TODO fix this shit to match the type interface
 func (p *Payload) Serialize() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
