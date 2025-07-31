@@ -177,7 +177,7 @@ $ go install github.com/MohammedShetaya/kayakdb/cli@latest
 Store a value:
 
 ```
-$ kayakctl put str:city str:Berlin
+$ kayakctl put str:country str:Palestine
 ```
 
 Fetch it back:
