@@ -1,0 +1,9 @@
+{
+  "raft_port": "6060",
+  "kayak_port": "7070",
+  "seed_peers": ["127.0.0.1:4040","127.0.0.1:5050"],
+  "log_level": "debug",
+  "max_log_batch": 10,
+  "worker_pool_size": 10,
+  "wait_queue_size": 10
+}

@@ -2,8 +2,9 @@ package fixtures
 
 import (
 	"github.com/MohammedShetaya/kayakdb/api"
+	"github.com/MohammedShetaya/kayakdb/config"
 	. "github.com/MohammedShetaya/kayakdb/test/fixtures/test_data"
-	"github.com/MohammedShetaya/kayakdb/utils/log"
+	"github.com/MohammedShetaya/kayakdb/utils"
 	"github.com/stretchr/testify/suite"
 	"time"
 )
@@ -17,14 +18,15 @@ func (s *E2ESuite) SetupSuite() {
 	s.Common.t = s.Suite.T()
 	s.options = make(map[string]interface{})
 	// start the server
-	logger := log.InitLogger()
+	logger := utils.InitLogger("debug")
 	defer func() {
 		_ = logger.Sync()
 	}()
 	// Start the server in a separate goroutine
 	go func() {
-		s.Common.server = api.NewServer(logger)
-		s.Common.server.Start(KayakdbHost, KayakdbPort)
+		cfg := &config.Configuration{KayakPort: KayakdbPort}
+		s.Common.server = api.NewServer(cfg, logger)
+		s.Common.server.Start()
 	}()
 
 	// wait for the server to start

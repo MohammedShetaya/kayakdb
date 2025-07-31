@@ -3,26 +3,28 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/MohammedShetaya/kayakdb/config"
+	"github.com/MohammedShetaya/kayakdb/raft"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"go.uber.org/zap"
 	"io"
 	"net"
 )
 
 type Server struct {
-	Host               string
-	Port               string
 	handlersController *HandlersController
-	listener           *net.Listener
 	logger             *zap.Logger
+	config             *config.Configuration
 }
 
-func NewServer(logger *zap.Logger) *Server {
+func NewServer(config *config.Configuration, logger *zap.Logger) *Server {
 	server := new(Server)
 	server.logger = logger
+	server.config = config
 	return server
 }
 
-func (s *Server) Start(host string, port string) {
+func (s *Server) Start() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
@@ -31,10 +33,10 @@ func (s *Server) Start(host string, port string) {
 		cancel()
 	}()
 	// initialize the protocol types
-	InitProtocol()
+	types.RegisterDataTypes()
 
 	s.logger.Info("Server is starting")
-	listener, err := net.Listen("tcp", host+":"+port)
+	listener, err := net.Listen("tcp", ":"+s.config.KayakPort)
 	if err != nil {
 		s.logger.Fatal("Failed to start server", zap.Error(err))
 	}
@@ -43,14 +45,13 @@ func (s *Server) Start(host string, port string) {
 		_ = listener.Close()
 	}()
 
-	s.listener = &listener
-	s.Host = host
-	s.Port = port
-	s.handlersController = NewHandlerController(&ctx, s.logger)
+	raftLib := raft.NewRaft(s.config, s.logger)
+	go raftLib.Start()
+
+	s.handlersController = NewHandlerController(&ctx, raftLib, s.logger)
 
 	s.logger.Info("Server is Listening on",
-		zap.String("host", host),
-		zap.String("port", port),
+		zap.String("port", s.config.KayakPort),
 	)
 	// TODO: implement workers pool
 	for {
@@ -85,18 +86,18 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
-				logger.Fatal("Error occurred while reading payload data", zap.Error(err))
+				logger.Fatal("Error occurred while reading payload types", zap.Error(err))
 			}
 			break
 		}
 		data = append(data, buffer[:n]...)
 
-		if uint32(len(data)*8) > MaxPayloadSize {
-			logger.Fatal(fmt.Sprintf("Exceeded maximum payload size of %v", MaxPayloadSize))
+		if uint32(len(data)*8) > types.MaxPayloadSize {
+			logger.Fatal(fmt.Sprintf("Exceeded maximum payload size of %v", types.MaxPayloadSize))
 		}
 	}
 
-	var payload Payload
+	var payload types.Payload
 	err := payload.Deserialize(data)
 
 	if err != nil {
@@ -105,6 +106,19 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 
 	logger.Info("Received Request", zap.String("from", conn.RemoteAddr().String()), zap.String("payload", payload.String()))
 
-	// TODO: handle request based on header path.
-	s.handlersController.HandleRequest(&payload)
+	// Handle request > build a response > send it back
+	if resp, e := s.handlersController.HandleRequest(&payload); e != nil {
+		logger.Error("Failed to handle client request", zap.Error(e))
+	} else {
+		if resp != nil {
+			b, ee := resp.Serialize()
+			if ee != nil {
+				logger.Error("Failed to serialize response", zap.Error(ee))
+			} else {
+				if _, eee := conn.Write(b); err != nil {
+					logger.Error("Failed to write response to client", zap.Error(eee))
+				}
+			}
+		}
+	}
 }

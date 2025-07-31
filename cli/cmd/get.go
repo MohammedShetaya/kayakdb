@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"github.com/MohammedShetaya/kayakdb/api"
+	"github.com/MohammedShetaya/kayakdb/cli/ui"
+	"github.com/MohammedShetaya/kayakdb/types"
 	"github.com/spf13/cobra"
 )
 
@@ -29,15 +30,30 @@ func init() {
 }
 
 func commandHandler(_ *cobra.Command, args []string) {
-	key, _ := api.ConvertStringKeyToDataType(args[0])
-	payload := api.Payload{
-		Headers: api.Headers{
-			Path: "/get",
+	key, err := ConvertStringToDataType(args[0])
+	if err != nil {
+		FormatDataTypeError(args[0], err, "key")
+	}
+
+	payload := types.Payload{
+		Headers: types.Headers{
+			Path: types.String("/get"),
 		},
-		Data: []api.KeyValue{
-			{Key: key},
+		Data: []types.Type{
+			key,
 		},
 	}
 
-	SendRequest(hostname, port, payload, logger)
+	res := SendRequest(hostname, port, payload)
+
+	col := []string{"key", "value"}
+	var row [][]string
+	row = [][]string{}
+
+	for _, r := range res.Data {
+		kv := r.(types.KeyValue)
+		row = append(row, []string{kv.Key.String(), kv.Value.String()})
+	}
+
+	ui.PrintSimpleTable(col, row)
 }
