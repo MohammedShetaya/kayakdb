@@ -3,6 +3,7 @@ package fixtures
 import (
 	"fmt"
 	"github.com/MohammedShetaya/kayakdb/types"
+	. "github.com/MohammedShetaya/kayakdb/test/fixtures/test_data"
 	"net"
 	"time"
 )
@@ -19,7 +20,7 @@ func (t *Then) When() *When {
 // SendRequest
 // Expected options: ["payload"]
 func (t *Then) SendRequest() {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", t.server.Host, t.server.Port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", KayakdbHost, KayakdbPort))
 	if err != nil {
 		t.Error("Failed to connect to server", err)
 	}
