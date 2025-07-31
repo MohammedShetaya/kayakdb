@@ -2,7 +2,9 @@
 
 Light-weight, distributed key–value store powered by the Raft consensus algorithm.
 
-![kayakdb logo](./docs/images/logo.png)
+<div align="center">
+    <img src="./docs/images/gopher_in_kayak.png" alt="kayakdb" style="width: 50%;">
+</div>
 
 ---
 
