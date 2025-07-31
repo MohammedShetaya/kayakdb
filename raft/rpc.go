@@ -2,7 +2,7 @@ package raft
 
 import (
 	"fmt"
-	"github.com/MohammedShetaya/kayakdb/types"
+	"github.com/MohammedShetaya/kayakdb/raft/storage"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ type AppendRequest struct {
 	PrevLogIndex uint
 	PreLogTerm   uint
 	LeaderCommit uint
-	Entries      []types.LogEntry
+	Entries      []storage.LogEntry
 }
 
 type PingRequest struct {
@@ -85,19 +85,20 @@ func (c *RpcController) Append(request AppendRequest, response *AppendResponse) 
 		return fmt.Errorf("error appending logs: %w", err)
 	}
 
+	var idx uint
 	if request.LeaderCommit > c.raft.State.CommitIndex {
 		// set the commit index to min(leader commit, index of last received log)
-		c.raft.State.CommitIndex = min(request.LeaderCommit, request.PrevLogIndex+uint(len(request.Entries)))
+		idx = min(request.LeaderCommit, request.PrevLogIndex+uint(len(request.Entries)))
+		c.raft.State.CommitIndex = idx
 	}
 
-	response.CommitIndex = c.raft.State.CommitIndex
+	response.CommitIndex = idx
 
 	return nil
 }
 
 // Ping should be used by leaders to send empty heartbeats to followers in case the log is synced with the leader
 func (c *RpcController) Ping(request PingRequest, response *PingResponse) error {
-	c.logger.Debug("Received a ping request from leader")
 
 	// don't accept anything from an expired leader
 	if request.Term < c.raft.State.Persistent.GetCurrentTerm() {

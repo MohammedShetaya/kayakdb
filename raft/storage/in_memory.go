@@ -12,12 +12,12 @@ import (
 type InMemoryDriver struct {
 	currentTerm uint
 	votedFor    string
-	log         []types.LogEntry
+	log         []LogEntry
 }
 
 func NewInMemoryDriver() *InMemoryDriver {
 	return &InMemoryDriver{
-		log: make([]types.LogEntry, 0),
+		log: make([]LogEntry, 0),
 	}
 }
 
@@ -42,12 +42,13 @@ func (d *InMemoryDriver) SetVotedFor(candidate string) error {
 }
 
 // Append appends a log entry and returns the log index.
-func (d *InMemoryDriver) Append(entry types.LogEntry) uint {
+func (d *InMemoryDriver) Append(entry LogEntry) uint {
+	fmt.Println("appending")
 	d.log = append(d.log, entry)
-	return uint(len(d.log) - 1)
+	return uint(len(d.log))
 }
 
-func (d *InMemoryDriver) AppendInIndex(index uint, entry types.LogEntry) uint {
+func (d *InMemoryDriver) AppendInIndex(index uint, entry LogEntry) uint {
 	// overwrite if it is possible
 	if index < uint(len(d.log)) {
 		d.log[index] = entry
@@ -57,14 +58,14 @@ func (d *InMemoryDriver) AppendInIndex(index uint, entry types.LogEntry) uint {
 	return d.Append(entry)
 }
 
-func (d *InMemoryDriver) GetEntryOfIndex(index uint) *types.LogEntry {
-	if index > uint(len(d.log)) {
+func (d *InMemoryDriver) GetEntryOfIndex(index uint) *LogEntry {
+	if index-1 > uint(len(d.log)) {
 		return nil
 	}
-	return &d.log[index]
+	return &d.log[index-1]
 }
 
-func (d *InMemoryDriver) AppendMany(startIndex uint, entries []types.LogEntry) error {
+func (d *InMemoryDriver) AppendMany(startIndex uint, entries []LogEntry) error {
 	if startIndex > uint(len(d.log)) {
 		return fmt.Errorf("start index is larger than log length")
 	}
@@ -77,7 +78,7 @@ func (d *InMemoryDriver) AppendMany(startIndex uint, entries []types.LogEntry) e
 
 //// FindLastMatchingIndex the function finds the largest index that matches the incoming entries.
 //// startIndex is the start index in the log where the log[startIndex+1] on the sender is the same as  entries[0]
-//func (d *InMemoryDriver) FindLastMatchingIndex(startIndex uint, entries []types.LogEntry) (uint, error) {
+//func (d *InMemoryDriver) FindLastMatchingIndex(startIndex uint, entries []LogEntry) (uint, error) {
 //	if startIndex > uint(len(d.log)) {
 //		return 0, fmt.Errorf("start index is larger than log length")
 //	}
@@ -99,10 +100,10 @@ func (d *InMemoryDriver) AppendMany(startIndex uint, entries []types.LogEntry) e
 //}
 
 // ConstructMappingFromLog constructs the map of the key-value pairs from the log entries.
-func (d *InMemoryDriver) ConstructMappingFromLog() (map[types.Type]types.Type, error) {
-	mapping := make(map[types.Type]types.Type)
+func (d *InMemoryDriver) ConstructMappingFromLog() (map[string]types.Type, error) {
+	mapping := make(map[string]types.Type)
 	for _, entry := range d.log {
-		mapping[entry.Pair.Key] = entry.Pair.Value
+		mapping[string(entry.Pair.Key.Bytes())] = entry.Pair.Value
 	}
 	return mapping, nil
 }

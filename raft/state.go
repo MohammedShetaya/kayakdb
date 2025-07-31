@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"fmt"
 	"github.com/MohammedShetaya/kayakdb/raft/storage"
 	"github.com/MohammedShetaya/kayakdb/types"
 	"net/rpc"
@@ -33,7 +34,7 @@ type State struct {
 
 	// constructed key-value map from the log
 	// TODO: use swap and disk (lru based)
-	state map[types.Type]types.Type
+	state map[string]types.Type
 }
 
 func NewState(driver storage.Driver) *State {
@@ -49,8 +50,13 @@ func NewState(driver storage.Driver) *State {
 }
 
 func (s *State) Get(key types.Type) (types.Type, error) {
-	return s.state[key], nil
+	// TODO: after implementing swapping make sure to retrieve cold values
+	return s.state[string(key.Bytes())], nil
 }
+
+//func (s *State) Put(key types.Type, val types.Type) error {
+//
+//}
 
 func (s *State) GetMajority() int {
 	return s.peersCount()/2 + 1
@@ -60,6 +66,31 @@ func (s *State) peersCount() int {
 	return len(s.peers)
 }
 
-func (s *State) GetLogsRange(start uint, end uint) []types.LogEntry {
-	return nil
+func (s *State) GetLogsRange(start uint, end uint) []storage.LogEntry {
+	// Return a slice containing log entries in the inclusive range [start,end].
+	// If end < start an empty slice is returned.
+	if end < start {
+		return nil
+	}
+	var result []storage.LogEntry
+	for idx := start; idx <= end; idx++ {
+		if entry := s.Persistent.GetEntryOfIndex(idx); entry != nil {
+			result = append(result, *entry)
+		}
+	}
+	return result
+}
+
+// ApplyNewEntries applies all log entries that have been committed but not yet applied
+// to the in-memory state map. After execution LastApplied will equal CommitIndex.
+func (s *State) ApplyNewEntries() {
+	fmt.Println("applying #####")
+	for idx := s.LastApplied + 1; idx <= s.CommitIndex; idx++ {
+		entry := s.Persistent.GetEntryOfIndex(idx)
+		if entry == nil {
+			continue
+		}
+		s.state[string(entry.Pair.Key.Bytes())] = entry.Pair.Value
+		s.LastApplied = idx
+	}
 }

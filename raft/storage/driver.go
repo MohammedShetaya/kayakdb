@@ -10,9 +10,14 @@ type Driver interface {
 	SetCurrentTerm(term uint) error
 	GetVotedFor() string
 	SetVotedFor(candidate string) error
-	Append(entry types.LogEntry) uint
-	AppendMany(startIndex uint, entries []types.LogEntry) error
-	GetEntryOfIndex(index uint) *types.LogEntry
-	//FindLastMatchingIndex(startIndex uint, entries []types.LogEntry) (uint, error)
-	ConstructMappingFromLog() (map[types.Type]types.Type, error)
+	Append(entry LogEntry) uint
+	AppendMany(startIndex uint, entries []LogEntry) error
+	GetEntryOfIndex(index uint) *LogEntry
+	//FindLastMatchingIndex(startIndex uint, entries []LogEntry) (uint, error)
+	ConstructMappingFromLog() (map[string]types.Type, error)
+}
+
+type LogEntry struct {
+	Term uint
+	Pair types.KeyValue
 }

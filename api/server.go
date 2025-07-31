@@ -106,6 +106,19 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 
 	logger.Info("Received Request", zap.String("from", conn.RemoteAddr().String()), zap.String("payload", payload.String()))
 
-	// TODO: handle request based on header path.
-	s.handlersController.HandleRequest(&payload)
+	// Handle request > build a response > send it back
+	if resp, e := s.handlersController.HandleRequest(&payload); e != nil {
+		logger.Error("Failed to handle client request", zap.Error(e))
+	} else {
+		if resp != nil {
+			b, ee := resp.Serialize()
+			if ee != nil {
+				logger.Error("Failed to serialize response", zap.Error(ee))
+			} else {
+				if _, eee := conn.Write(b); err != nil {
+					logger.Error("Failed to write response to client", zap.Error(eee))
+				}
+			}
+		}
+	}
 }

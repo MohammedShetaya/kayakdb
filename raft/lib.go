@@ -32,9 +32,14 @@ func NewRaft(config *config.Configuration, logger *zap.Logger) *Raft {
 
 	raft.State = NewState(storage.NewInMemoryDriver())
 
-	// TODO: for now assume that you will be provided with all the nodes
-	raft.State.peers = make([]Peer, len(raft.config.SeedPeers))
-	for i, addr := range raft.config.SeedPeers {
+	var p []string
+	if raft.config.PeerDiscovery {
+		p = utils.PeerServiceDiscovery(raft.config.ServiceName, raft.config.RaftPort)
+	} else {
+		p = raft.config.SeedPeers
+	}
+	raft.State.peers = make([]Peer, len(p))
+	for i, addr := range p {
 		raft.State.peers[i] = Peer{
 			addr: addr,
 		}
@@ -96,6 +101,9 @@ func (r *Raft) registerNode() {
 
 	for {
 		if r.State.IsLeader {
+			// this periodically updates the followers to make sure they are in sync with the leader.
+			// it shouldn't be frequently sending updates since new entries are populated upon receiving them by the leader
+			// it will mostly be effective when leadership change happens or a new server joins the cluster.
 			for i := 0; i < len(r.State.peers); i++ {
 				go func(peerIdx int) {
 					// check if the follower log is not up to date.
@@ -104,7 +112,7 @@ func (r *Raft) registerNode() {
 						diff := r.State.CommitIndex - r.State.peers[peerIdx].nextIndex
 
 						// this will be nil if diff>0. In that case no logs are expected to be sent, just
-						var logsToSend []types.LogEntry
+						var logsToSend []storage.LogEntry
 						if diff > 0 {
 							batchSize := min(diff, r.config.MaxLogBatch)
 							logsToSend = r.State.GetLogsRange(r.State.peers[peerIdx].nextIndex, r.State.peers[peerIdx].nextIndex+batchSize)
@@ -341,4 +349,94 @@ func sendRPC(peer *Peer, remoteFunc string, request any, response any) error {
 	}
 
 	return nil
+}
+
+// Put handles the logic for putting a new entry on the leader or redirecting the command to the current leader on followers.
+// it cannot be async since the user will be waiting for a response.
+func (r *Raft) Put(data []types.Type) []storage.LogEntry {
+	// TODO: check if this server is a leader, if not forward to the current leader for now assume that put will be only called on leaders
+
+	// create a log entry of the new values
+	var entries []storage.LogEntry
+	var lastIndex uint // will hold the index of the last appended log entry
+
+	for _, kv := range data {
+		fmt.Println(kv)
+		if pair, ok := kv.(types.KeyValue); ok {
+			fmt.Println(pair)
+			entry := storage.LogEntry{
+				Term: r.State.Persistent.GetCurrentTerm(),
+				Pair: pair,
+			}
+			idx := r.State.Persistent.Append(entry)
+			r.State.CommitIndex = r.State.CommitIndex + 1
+			lastIndex = idx
+			entries = append(entries, entry)
+		} else {
+			r.logger.Error("unable to assert to KeyValue")
+		}
+	}
+	fmt.Println(lastIndex)
+
+	commits := atomic.Uint64{}
+	// add this leader server
+	commits.Add(1)
+
+	signal := make(chan struct{})
+
+	// populate the new entry to followers
+	for i := 0; i < len(r.State.peers); i++ {
+		go func(peerIdx int, raft *Raft) {
+
+			request := AppendRequest{
+				Term:         r.State.Persistent.GetCurrentTerm(),
+				LeaderId:     r.State.ServerId,
+				PrevLogIndex: r.State.peers[peerIdx].nextIndex - 1,
+				LeaderCommit: r.State.CommitIndex,
+				Entries:      entries,
+			}
+
+			response := new(AppendResponse)
+
+			err := sendRPC(&r.State.peers[peerIdx],
+				"RpcController.Append",
+				request,
+				response)
+			if err != nil {
+				raft.logger.Debug(fmt.Sprintf("error appending new entry to follower: %v", peerIdx), zap.Error(err))
+				return
+			}
+
+			signal <- struct{}{}
+
+		}(i, r)
+	}
+
+	// TODO: rethink this one since it's dangerous in the senario when leader is not able to get a majority to commit the entry
+	for {
+		select {
+		case <-signal:
+			commits.Add(1)
+		default:
+			if int(commits.Load()) >= r.State.GetMajority() {
+				// majority has acknowledged, apply entries
+				r.State.CommitIndex = lastIndex
+				r.State.ApplyNewEntries()
+				fmt.Println(r.State.state)
+				fmt.Println(r.State.CommitIndex)
+				fmt.Println(r.State.LastApplied)
+				return entries
+			}
+		}
+	}
+
+}
+
+func (r *Raft) Get(key types.Type) (types.Type, error) {
+	// If this node is not the leader, in a fully-fledged implementation we would
+	// forward the request to the current leader. For the time being – until
+	// redirection logic is implemented – we simply try to satisfy the request
+	// from the local constructed state map. This will work correctly when the
+	// request is sent to the current leader and during single-node deployments.
+	return r.State.Get(key)
 }

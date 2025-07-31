@@ -5,12 +5,11 @@ import (
 	"github.com/MohammedShetaya/kayakdb/api"
 	"github.com/MohammedShetaya/kayakdb/config"
 	"github.com/MohammedShetaya/kayakdb/utils"
-	"github.com/MohammedShetaya/kayakdb/utils/log"
 	"os"
 )
 
 func main() {
-
+	// load configurations
 	c := &config.Configuration{}
 	_, err := utils.LoadConfigurations(c)
 	if err != nil {
@@ -18,7 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := log.InitLogger(c.LogLevel)
+	logger := utils.InitLogger(c.LogLevel)
 	defer func() {
 		_ = logger.Sync()
 	}()

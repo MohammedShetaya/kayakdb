@@ -1,7 +1,7 @@
 package types
 
 /*
- This module represents the types types used in the api and storage backend
+ This module represents the types used in the api and storage backend
 */
 
 import (
@@ -10,7 +10,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -28,22 +27,24 @@ type Type interface {
 	Bytes() []byte
 }
 
-// Binary Implementation the Binary types type
-type Binary []byte
+// Bool ------------------------------------------------------------------------------------------------------
+// Bool Implementation the Bool types
+type Bool []byte
 
-func (b Binary) String() string {
+func (b Bool) String() string {
 	if binary.BigEndian.Uint32(b) == 1 {
 		return "True"
 	}
 	return "False"
 }
 
-func (b Binary) Bytes() []byte {
+func (b Bool) Bytes() []byte {
 	return b
 }
 
+// Number ------------------------------------------------------------------------------------------------------
 // Number TODO: support larger numbers and floating point
-// Number Implementation of the Number types type
+// Number Implementation of the Number type
 type Number []byte
 
 func (n Number) String() string {
@@ -56,75 +57,110 @@ func (n Number) Bytes() []byte {
 	return n
 }
 
+// String ------------------------------------------------------------------------------------------------------
 // String Implementation of the String type
-type String []byte
+type String string
 
 func (s String) String() string {
 	return string(s)
 }
 
 func (s String) Bytes() []byte {
-	return s
+	return []byte(s)
 }
 
 type Headers struct {
-	Path string
+	Path String
 }
 
 func (h Headers) String() string {
 	return fmt.Sprintf("Path: %s (Length: %d)", h.Path, len(h.Path))
 }
 
+func (h Headers) Bytes() []byte {
+	return h.Path.Bytes()
+}
+
+// KeyValue ------------------------------------------------------------------------------------------------------
 type KeyValue struct {
 	Key   Type
 	Value Type
 }
 
+func (kv KeyValue) String() string {
+	if kv.Value == nil {
+		return fmt.Sprintf("%s: nil", kv.Key.String())
+	}
+	return fmt.Sprintf("%s: %s", kv.Key.String(), kv.Value.String())
+}
+
+func (kv KeyValue) Bytes() []byte {
+	var buffer bytes.Buffer
+
+	// Write key bytes
+	keyBytes := kv.Key.Bytes()
+	buffer.Write(keyBytes)
+
+	// Write separator
+	buffer.WriteByte(':')
+
+	// Write value bytes
+	if kv.Value != nil {
+		valueBytes := kv.Value.Bytes()
+		buffer.Write(valueBytes)
+	}
+
+	return buffer.Bytes()
+}
+
+// Payload ------------------------------------------------------------------------------------------------------
 type Payload struct {
 	Headers Headers
-	Data    []KeyValue
+	Data    []Type
 }
 
 func (p Payload) String() string {
 	var sb strings.Builder
-	// Write headers to the string
-	sb.WriteString(fmt.Sprintf("Headers:\n  %s\n", p.Headers.String()))
+	// Add headers
+	sb.WriteString("Headers: ")
+	sb.WriteString(p.Headers.String())
+	sb.WriteString("\n")
 
-	// Iterate over Data and write each key-value pair
+	// Add data
 	sb.WriteString("Data:\n")
-	for _, entry := range p.Data {
-		if entry.Value == nil {
-			sb.WriteString(fmt.Sprintf("  %s: nil\n", entry.Key.String()))
-			continue
+	if len(p.Data) == 0 {
+		sb.WriteString("  (empty)\n")
+	} else {
+		for i, item := range p.Data {
+			sb.WriteString(fmt.Sprintf("  [%d] %s\n", i, item.String()))
 		}
-		sb.WriteString(fmt.Sprintf("%s: %s\n", entry.Key.String(), entry.Value.String()))
 	}
 
 	return sb.String()
 }
 
-type LogEntry struct {
-	Term uint
-	Pair KeyValue
-}
-
-func (l *LogEntry) String() string {
-	return fmt.Sprintf("Term: %d, Key: %s, Value: %s", l.Term, l.Pair.Key, l.Pair.Value)
-}
-
-func (l *LogEntry) Bytes() []byte {
+func (p Payload) Bytes() []byte {
 	var buffer bytes.Buffer
-	encoder := gob.NewEncoder(&buffer)
 
-	if err := encoder.Encode(l); err != nil {
-		return nil
+	// Write headers bytes
+	headerBytes := p.Headers.Bytes()
+	buffer.Write(headerBytes)
+
+	// Write separator
+	buffer.WriteByte('\n')
+
+	// Write data bytes
+	for _, kv := range p.Data {
+		kvBytes := kv.Bytes()
+		buffer.Write(kvBytes)
+		buffer.WriteByte('\n')
 	}
 
 	return buffer.Bytes()
 }
 
 // TODO fix this shit to match the type interface
-func (p *Payload) Serialize() ([]byte, error) {
+func (p Payload) Serialize() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 
@@ -148,18 +184,10 @@ func (p *Payload) Deserialize(data []byte) error {
 
 func RegisterDataTypes() {
 	// register the types to be serialized
-	gob.Register(Binary{})
+	gob.Register(Bool{})
 	gob.Register(Number{})
-	gob.Register(String{})
-}
-
-func ConvertStringKeyToDataType(data string) (Type, error) {
-	// convert the string to number
-	if num, err := strconv.Atoi(data); err == nil {
-		byteArray := make([]byte, 8)
-		binary.BigEndian.PutUint64(byteArray, uint64(num))
-		return Number(byteArray), nil
-	} else { // if not a number then convert to a string types-type
-		return String(data), nil
-	}
+	gob.Register(String(""))
+	gob.Register(KeyValue{})
+	gob.Register(Headers{})
+	gob.Register(Payload{})
 }
