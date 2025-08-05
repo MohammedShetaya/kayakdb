@@ -71,6 +71,9 @@ func (s String) Bytes() []byte {
 
 type Headers struct {
 	Path String
+	// TODO: fix this to have more meaning if needed. Now it is just sucdess 0 code or fail 1
+	Status  uint
+	Message string
 }
 
 func (h Headers) String() string {

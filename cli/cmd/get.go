@@ -46,6 +46,10 @@ func commandHandler(_ *cobra.Command, args []string) {
 
 	res := SendRequest(hostname, port, payload)
 
+	if res.Headers.Status != 0 {
+		ui.Error("Failed to get key", "").WithDetails(res.Headers.Message).PrintAndExit()
+	}
+
 	col := []string{"key", "value"}
 	var row [][]string
 	row = [][]string{}

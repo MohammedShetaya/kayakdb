@@ -43,7 +43,6 @@ func (d *InMemoryDriver) SetVotedFor(candidate string) error {
 
 // Append appends a log entry and returns the log index.
 func (d *InMemoryDriver) Append(entry LogEntry) uint {
-	fmt.Println("appending")
 	d.log = append(d.log, entry)
 	return uint(len(d.log))
 }

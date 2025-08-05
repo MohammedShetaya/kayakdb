@@ -48,7 +48,13 @@ func (s *Server) Start() {
 	raftLib := raft.NewRaft(s.config, s.logger)
 	go raftLib.Start()
 
-	s.handlersController = NewHandlerController(&ctx, raftLib, s.logger)
+	handler, e := NewHandlerController(&ctx, raftLib, s.logger)
+
+	if e != nil {
+		s.logger.Fatal("Failed to init request controller", zap.Error(err))
+	}
+
+	s.handlersController = handler
 
 	s.logger.Info("Server is Listening on",
 		zap.String("port", s.config.KayakPort),
@@ -107,17 +113,26 @@ func (s *Server) handleConnection(ctx *context.Context, logger *zap.Logger, conn
 	logger.Info("Received Request", zap.String("from", conn.RemoteAddr().String()), zap.String("payload", payload.String()))
 
 	// Handle request > build a response > send it back
-	if resp, e := s.handlersController.HandleRequest(&payload); e != nil {
-		logger.Error("Failed to handle client request", zap.Error(e))
+	if res, err := s.handlersController.HandleRequest(&payload); err != nil {
+		logger.Error("Failed to handle client request", zap.Error(err))
+		failureRes := types.Payload{
+			Headers: types.Headers{
+				Status:  1,
+				Message: err.Error(),
+			},
+		}
+		serialized, _ := failureRes.Serialize()
+		_, err = conn.Write(serialized)
+
 	} else {
-		if resp != nil {
-			b, ee := resp.Serialize()
-			if ee != nil {
-				logger.Error("Failed to serialize response", zap.Error(ee))
-			} else {
-				if _, eee := conn.Write(b); err != nil {
-					logger.Error("Failed to write response to client", zap.Error(eee))
-				}
+		res.Headers.Status = 0
+		serialized, e := res.Serialize()
+
+		if e != nil {
+			logger.Error("Failed to serialize response", zap.Error(e))
+		} else {
+			if _, e := conn.Write(serialized); e != nil {
+				logger.Error("Failed to send response to client", zap.Error(e))
 			}
 		}
 	}

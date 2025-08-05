@@ -19,7 +19,7 @@ type HandlersController struct {
 // processing the request.
 type RequestHandler func(raft *raft.Raft, logger *zap.Logger, payload *types.Payload) (*types.Payload, error)
 
-func NewHandlerController(ctx *context.Context, raft *raft.Raft, logger *zap.Logger) *HandlersController {
+func NewHandlerController(ctx *context.Context, raft *raft.Raft, logger *zap.Logger) (*HandlersController, error) {
 	controller := &HandlersController{
 		handlers: make(map[string]RequestHandler),
 		raft:     raft,
@@ -29,9 +29,9 @@ func NewHandlerController(ctx *context.Context, raft *raft.Raft, logger *zap.Log
 
 	err := controller.RegisterHandlers()
 	if err != nil {
-		logger.Fatal("Error initializing handlers", zap.Error(err))
+		return nil, fmt.Errorf("Error initializing handlers \n%v", err)
 	}
-	return controller
+	return controller, nil
 }
 
 func (c *HandlersController) RegisterHandler(path string, handler RequestHandler) {
@@ -41,12 +41,11 @@ func (c *HandlersController) RegisterHandler(path string, handler RequestHandler
 func (c *HandlersController) HandleRequest(payload *types.Payload) (*types.Payload, error) {
 	handler, exist := c.handlers[payload.Headers.Path.String()]
 	if !exist {
-		c.logger.Fatal("No Handler for the request path", zap.String("path", payload.Headers.Path.String()))
+		return nil, fmt.Errorf("no Handler for the request path %v", payload.Headers.Path.String())
 	}
 
 	resp, err := handler(c.raft, c.logger, payload)
 	if err != nil {
-		c.logger.Error("Unable to handle Request", zap.Error(err))
 		return nil, err
 	}
 

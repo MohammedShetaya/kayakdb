@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/MohammedShetaya/kayakdb/cli/ui"
 	"github.com/MohammedShetaya/kayakdb/types"
 	"github.com/spf13/cobra"
 )
@@ -51,5 +52,9 @@ func putCommandHandler(_ *cobra.Command, args []string) {
 		},
 	}
 
-	SendRequest(hostname, port, payload)
+	res := SendRequest(hostname, port, payload)
+
+	if res.Headers.Status == 0 {
+		ui.Success("Key was added successfully!").Print()
+	}
 }

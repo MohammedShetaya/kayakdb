@@ -361,9 +361,7 @@ func (r *Raft) Put(data []types.Type) []storage.LogEntry {
 	var lastIndex uint // will hold the index of the last appended log entry
 
 	for _, kv := range data {
-		fmt.Println(kv)
 		if pair, ok := kv.(types.KeyValue); ok {
-			fmt.Println(pair)
 			entry := storage.LogEntry{
 				Term: r.State.Persistent.GetCurrentTerm(),
 				Pair: pair,
@@ -376,7 +374,6 @@ func (r *Raft) Put(data []types.Type) []storage.LogEntry {
 			r.logger.Error("unable to assert to KeyValue")
 		}
 	}
-	fmt.Println(lastIndex)
 
 	commits := atomic.Uint64{}
 	// add this leader server
@@ -422,9 +419,6 @@ func (r *Raft) Put(data []types.Type) []storage.LogEntry {
 				// majority has acknowledged, apply entries
 				r.State.CommitIndex = lastIndex
 				r.State.ApplyNewEntries()
-				fmt.Println(r.State.state)
-				fmt.Println(r.State.CommitIndex)
-				fmt.Println(r.State.LastApplied)
 				return entries
 			}
 		}

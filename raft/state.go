@@ -1,7 +1,6 @@
 package raft
 
 import (
-	"fmt"
 	"github.com/MohammedShetaya/kayakdb/raft/storage"
 	"github.com/MohammedShetaya/kayakdb/types"
 	"net/rpc"
@@ -84,7 +83,6 @@ func (s *State) GetLogsRange(start uint, end uint) []storage.LogEntry {
 // ApplyNewEntries applies all log entries that have been committed but not yet applied
 // to the in-memory state map. After execution LastApplied will equal CommitIndex.
 func (s *State) ApplyNewEntries() {
-	fmt.Println("applying #####")
 	for idx := s.LastApplied + 1; idx <= s.CommitIndex; idx++ {
 		entry := s.Persistent.GetEntryOfIndex(idx)
 		if entry == nil {
